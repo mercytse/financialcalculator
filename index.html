@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Quantitative Growth Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<style>
+  :root {
+    --primary: #2563eb;
+    --background: #f8fafc;
+    --card-bg: #fff;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+  }
+  body { margin: 0; font-family: system-ui, -apple-system, sans-serif; background: var(--background); color: var(--text); padding: 20px; }
+  .app { max-width: 800px; margin: 2rem auto; padding: 1rem; }
+  .card { background: var(--card-bg); border-radius: 12px; padding: 2rem; box-shadow: 0 4px 6px rgba(0,0,0,.08); }
+  .header-nav { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
+  h1 { margin: 0; font-size: 1.5rem; }
+  .nav-link { color: var(--primary); text-decoration: none; font-weight: 600; font-size: 0.9rem; }
+  .nav-link:hover { text-decoration: underline; }
+  .tabs { display: flex; margin-bottom: 1rem; }
+  .tab { flex: 1; padding: .5rem 1rem; text-align: center; cursor: pointer; background: var(--border); border-top-left-radius: 8px; border-top-right-radius: 8px; font-size: 0.95rem; }
+  .tab.active { background: var(--card-bg); font-weight: 700; }
+  .field { margin-bottom: .75rem; }
+  label { display: block; font-size: .8rem; text-transform: uppercase; letter-spacing: .03em; margin-bottom: .25rem; font-weight: 600; color: var(--text-light); }
+  input, select { width: 100%; padding: .5rem; border: 1px solid var(--border); border-radius: 6px; box-sizing: border-box; font-size: 0.95rem; }
+  .results { margin-top: 1.5rem; padding: 1rem; background: #fff; border-radius: 8px; border: 1px solid var(--border); }
+  .results h2 { font-size: 1rem; margin-bottom: .5rem; margin-top: 0; }
+  .result-row { display: flex; justify-content: space-between; margin-bottom: .35rem; font-size: 0.95rem; }
+  .total { font-weight: 700; border-top: 1px solid var(--border); padding-top: 0.5rem; margin-top: 0.5rem; }
+  .chart-box { margin-top: 1rem; height: 260px; position: relative; }
+  table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 0.9rem; }
+  th, td { padding: .5rem; border-bottom: 1px solid var(--border); text-align: right; }
+  th { background: var(--border); position: sticky; top: 0; }
+  button#export-btn { margin-top: 1rem; width: 100%; padding: 0.75rem; background: var(--primary); color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: 600; }
+  button#export-btn:hover { background: #1d4ed8; }
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header-nav">
+    <h1>Quantitative Growth Simulator</h1>
+    <a href="methodology.html" class="nav-link">View Mathematical Methodology &rarr;</a>
+  </div>
+
+  <div class="tabs">
+    <div class="tab active" data-mode="invest">Investment Growth</div>
+    <div class="tab" data-mode="loan">Loan Amortization</div>
+  </div>
+
+  <div class="card">
+    <div id="invest-mode">
+      <div class="field"><label for="inv-principal">Principal ($)</label><input id="inv-principal" type="number" value="10000" min="0"></div>
+      <div class="field"><label for="inv-rate">Annual Rate (%)</label><input id="inv-rate" type="number" value="7.5" step="0.01"></div>
+      <div class="field"><label for="inv-years">Years</label><input id="inv-years" type="number" value="10" min="1"></div>
+      <div class="field"><label for="inv-contrib">Recurring Contribution ($)</label><input id="inv-contrib" type="number" value="0" min="0"></div>
+      <div class="field"><label for="inv-freq">Contribution Frequency</label>
+        <select id="inv-freq">
+          <option value="monthly">Monthly</option>
+          <option value="annually">Annually</option>
+        </select>
+      </div>
+      <div class="field"><label for="inv-timing">Contribution Timing</label>
+        <select id="inv-timing">
+          <option value="start">Start of Period</option>
+          <option value="end">End of Period</option>
+        </select>
+      </div>
+      <div class="field"><label for="inv-compound">Compounding Frequency</label>
+        <select id="inv-compound">
+          <option value="annually">Annually</option>
+          <option value="semiannually">Semi‑annually</option>
+          <option value="quarterly">Quarterly</option>
+          <option value="monthly" selected>Monthly</option>
+          <option value="daily">Daily</option>
+        </select>
+      </div>
+      <p id="inv-warn" style="color:var(--text-light); font-size:.85rem;"></p>
+    </div>
+
+    <div id="loan-mode" style="display:none;">
+      <div class="field"><label for="loan-principal">Loan Amount ($)</label><input id="loan-principal" type="number" value="250000" min="0"></div>
+      <div class="field"><label for="loan-rate">Annual Rate (%)</label><input id="loan-rate" type="number" value="3.5" step="0.01"></div>
+      <div class="field"><label for="loan-term">Term (Years)</label><input id="loan-term" type="number" value="30" min="1"></div>
+      <div class="field"><label for="loan-extra">Extra Monthly Payment ($)</label><input id="loan-extra" type="number" value="0" min="0"></div>
+      <p id="loan-warn" style="color:var(--text-light); font-size:.85rem;"></p>
+    </div>
+  </div>
+  
+  <div class="results" aria-live="polite">
+    <h2>Results Summary</h2>
+    <div class="result-row"><span>Initial Capital / Loan Amount</span><span id="metric-cap"></span></div>
+    <div class="result-row"><span>Total Contributions / Interest</span><span id="metric-flow"></span></div>
+    <div class="result-row"><span>Effective Annual Rate (EAR)</span><span id="metric-ear"></span></div>
+    <div class="result-row"><span id="metric-target-lbl"></span><span id="metric-target-val"></span></div>
+    <div class="result-row total"><span>Interest Earned / Paid (Net)</span><span id="metric-net"></span></div>
+  </div>
+
+  <div class="chart-box">
+    <canvas id="growthCanvas"></canvas>
+  </div>
+  
+  <button id="export-btn">Download CSV Schedule</button>
+  
+  <div style="max-height: 300px; overflow-y: auto;">
+    <table id="ledger-table"><thead><tr><th>Period</th><th>Balance</th><th>Contribution/Payment</th><th>Interest</th><th>Ending</th></tr></thead><tbody></tbody></table>
+  </div>
+</div>
+
+<script>
+(() => {
+  const ENV_CONFIG = {
+    DEBOUNCE_MS: 120,
+    MAX_HORIZON_YEARS: 100,
+    CURRENCY: 'USD',
+    LOCALE: 'en-US'
+  };
+
+  const usd = new Intl.NumberFormat(ENV_CONFIG.LOCALE, { style: 'currency', currency: ENV_CONFIG.CURRENCY, maximumFractionDigits: 2 }).format;
+  const pct = new Intl.NumberFormat(ENV_CONFIG.LOCALE, { style: 'percent', maximumFractionDigits: 2 }).format;
+  const parseVal = (v) => Math.max(0, parseFloat(v) || 0);
+
+  const dom = {
+    tabs: document.querySelectorAll('.tab'),
+    investGroup: document.getElementById('invest-mode'),
+    loanGroup: document.getElementById('loan-mode'),
+    tableBody: document.querySelector('#ledger-table tbody'),
+    exportBtn: document.getElementById('export-btn'),
+    chartCanvas: document.getElementById('growthCanvas'),
+    invest: {
+      principal: document.getElementById('inv-principal'),
+      rate: document.getElementById('inv-rate'),
+      years: document.getElementById('inv-years'),
+      contrib: document.getElementById('inv-contrib'),
+      freq: document.getElementById('inv-freq'),
+      timing: document.getElementById('inv-timing'),
+      compound: document.getElementById('inv-compound'),
+      warn: document.getElementById('inv-warn')
+    },
+    loan: {
+      principal: document.getElementById('loan-principal'),
+      rate: document.getElementById('loan-rate'),
+      term: document.getElementById('loan-term'),
+      extra: document.getElementById('loan-extra'),
+      warn: document.getElementById('loan-warn')
+    },
+    metrics: {
+      cap: document.getElementById('metric-cap'),
+      flow: document.getElementById('metric-flow'),
+      ear: document.getElementById('metric-ear'),
+      targetLbl: document.getElementById('metric-target-lbl'),
+      targetVal: document.getElementById('metric-target-val'),
+      net: document.getElementById('metric-net')
+    }
+  };
+
+  let activeMode = 'invest';
+  let chartInstance = null;
+
+  function calcInvestmentTrajectory(cfg) {
+    const { principal, rate, years, contrib, freq, timing, compound } = cfg;
+    const compoundFreqMap = { annually: 1, semiannually: 2, quarterly: 4, monthly: 12, daily: 365 };
+    const n = compoundFreqMap[compound] || 12;
+    const cFreq = freq === 'annually' ? 1 : 12;
+    const periodicRate = rate / 100 / n;
+    
+    let currBalance = principal;
+    let totalContributed = 0;
+    const schedule = [];
+    const contribPerPeriod = contrib / (cFreq === 1 ? (years / (years * n)) : (n / cFreq));
+
+    for (let yr = 1; yr <= years; yr++) {
+      let startBal = currBalance;
+      let yrInterest = 0;
+      let yrContrib = 0;
+
+      for (let m = 1; m <= n; m++) {
+        if (timing === 'start' && contrib > 0) {
+          currBalance += contribPerPeriod;
+          yrContrib += contribPerPeriod;
+          totalContributed += contribPerPeriod;
+        }
+        
+        const accrued = currBalance * periodicRate;
+        currBalance += accrued;
+        yrInterest += accrued;
+
+        if (timing === 'end' && contrib > 0) {
+          currBalance += contribPerPeriod;
+          yrContrib += contribPerPeriod;
+          totalContributed += contribPerPeriod;
+        }
+      }
+
+      schedule.push({
+        label: `Year ${yr}`,
+        balance: startBal,
+        flow: yrContrib,
+        interest: yrInterest,
+        ending: currBalance
+      });
+    }
+
+    return { finalVal: currBalance, totalContributed, schedule, n, rate };
+  }
+
+  function calcAmortizationSchedule(cfg) {
+    const { principal, rate, term, extra } = cfg;
+    const mRate = rate / 100 / 12;
+    const totalMonths = term * 12;
+    
+    const basePmt = mRate === 0 
+      ? principal / totalMonths 
+      : principal * mRate * Math.pow(1 + mRate, totalMonths) / (Math.pow(1 + mRate, totalMonths) - 1);
+
+    let currBalance = principal;
+    let cumInterest = 0;
+    const schedule = [];
+
+    for (let m = 1; m <= totalMonths && currBalance > 0; m++) {
+      const interest = currBalance * mRate;
+      let principalPaid = (basePmt - interest) + extra;
+      if (principalPaid > currBalance) principalPaid = currBalance;
+      
+      currBalance -= principalPaid;
+      cumInterest += interest;
+
+      schedule.push({
+        label: `Month ${m}`,
+        balance: currBalance + principalPaid,
+        flow: principalPaid + interest,
+        interest,
+        ending: currBalance
+      });
+    }
+
+    return { cumInterest, basePmt, schedule, principal, rate };
+  }
+
+  function renderChart(schedule) {
+    const labels = schedule.map(s => s.label);
+    const dataPoints = schedule.map(s => s.ending);
+
+    if (chartInstance) {
+      chartInstance.destroy();
+    }
+
+    chartInstance = new Chart(dom.chartCanvas, {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          label: 'Ending Balance',
+          data: dataPoints,
+          borderColor: '#2563eb',
+          backgroundColor: 'rgba(37, 99, 235, 0.08)',
+          fill: true,
+          tension: 0.1,
+          pointRadius: schedule.length > 50 ? 0 : 3
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { display: false } },
+          y: { ticks: { callback: v => '$' + v.toLocaleString() } }
+        }
+      }
+    });
+  }
+
+  function updateDashboard() {
+    if (activeMode === 'invest') {
+      const inputs = {
+        principal: parseVal(dom.invest.principal.value),
+        rate: parseVal(dom.invest.rate.value),
+        years: parseVal(dom.invest.years.value),
+        contrib: parseVal(dom.invest.contrib.value),
+        freq: dom.invest.freq.value,
+        timing: dom.invest.timing.value,
+        compound: dom.invest.compound.value
+      };
+
+      dom.invest.warn.textContent = inputs.years > ENV_CONFIG.MAX_HORIZON_YEARS 
+        ? `Horizon capped to max ${ENV_CONFIG.MAX_HORIZON_YEARS} years.` : '';
+
+      const res = calcInvestmentTrajectory(inputs);
+      const ear = Math.pow(1 + (inputs.rate / 100 / res.n), res.n) - 1;
+
+      dom.metrics.cap.textContent = usd(inputs.principal);
+      dom.metrics.flow.textContent = usd(res.totalContributed);
+      dom.metrics.ear.textContent = pct(ear);
+      dom.metrics.targetLbl.textContent = 'Terminal Value';
+      dom.metrics.targetVal.textContent = usd(res.finalVal);
+      dom.metrics.net.textContent = usd(res.finalVal - inputs.principal - res.totalContributed);
+
+      renderTable(res.schedule);
+      renderChart(res.schedule);
+    } else {
+      const inputs = {
+        principal: parseVal(dom.loan.principal.value),
+        rate: parseVal(dom.loan.rate.value),
+        term: parseVal(dom.loan.term.value),
+        extra: parseVal(dom.loan.extra.value)
+      };
+
+      dom.loan.warn.textContent = inputs.term > ENV_CONFIG.MAX_HORIZON_YEARS 
+        ? `Term capped to max ${ENV_CONFIG.MAX_HORIZON_YEARS} years.` : '';
+
+      const res = calcAmortizationSchedule(inputs);
+
+      dom.metrics.cap.textContent = usd(inputs.principal);
+      dom.metrics.flow.textContent = usd(res.cumInterest);
+      dom.metrics.ear.textContent = pct(inputs.rate / 100);
+      dom.metrics.targetLbl.textContent = 'Total Cost (Principal + Interest)';
+      dom.metrics.targetVal.textContent = usd(inputs.principal + res.cumInterest);
+      dom.metrics.net.textContent = usd(res.cumInterest);
+
+      renderTable(res.schedule);
+      renderChart(res.schedule);
+    }
+  }
+
+  function renderTable(schedule) {
+    dom.tableBody.innerHTML = schedule.map(row => `
+      <tr>
+        <td>${row.label}</td>
+        <td>${usd(row.balance)}</td>
+        <td>${usd(row.flow)}</td>
+        <td>${usd(row.interest)}</td>
+        <td>${usd(row.ending)}</td>
+      </tr>
+    `).join('');
+  }
+
+  function debounce(fn, ms) {
+    let timer;
+    return (...args) => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fn(...args), ms);
+    };
+  }
+
+  const debouncedSync = debounce(updateDashboard, ENV_CONFIG.DEBOUNCE_MS);
+
+  dom.tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      dom.tabs.forEach(t => t.classList.remove('active'));
+      tab.classList.add('active');
+      activeMode = tab.dataset.mode;
+      dom.investGroup.style.display = activeMode === 'invest' ? 'block' : 'none';
+      dom.loanGroup.style.display = activeMode === 'loan' ? 'block' : 'none';
+      updateDashboard();
+    });
+  });
+
+  document.querySelectorAll('input, select').forEach(el => {
+    el.addEventListener('input', debouncedSync);
+  });
+
+  dom.exportBtn.addEventListener('click', () => {
+    const rows = [['Period', 'Balance', 'Contribution/Payment', 'Interest', 'Ending']];
+    for (const row of dom.tableBody.rows) {
+      rows.push(Array.from(row.cells).map(c => `"${c.textContent}"`));
+    }
+    const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `${activeMode}-amortization-schedule.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  });
+
+  updateDashboard();
+})();
+</script>
+</body>
+</html>

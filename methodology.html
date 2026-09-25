@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Methodology - Quantitative Growth Simulator</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  :root {
+    --primary: #2563eb;
+    --background: #f8fafc;
+    --card-bg: #fff;
+    --text: #1e293b;
+    --text-light: #64748b;
+    --border: #e2e8f0;
+  }
+  body {
+    margin: 0; font-family: system-ui, sans-serif; background: var(--background);
+    color: var(--text); padding: 40px 20px; line-height: 1.6;
+  }
+  .container { max-width: 700px; margin: 0 auto; }
+  .card {
+    background: var(--card-bg); border-radius: 12px; padding: 2.5rem;
+    box-shadow: 0 4px 6px rgba(0,0,0,.1);
+  }
+  .nav-back { display: inline-block; color: var(--primary); text-decoration: none; font-weight: 600; margin-bottom: 1.5rem; }
+  .nav-back:hover { text-decoration: underline; }
+  h1 { margin-top: 0; color: var(--text); font-size: 1.8rem; letter-spacing: -0.025em; }
+  h3 { color: var(--primary); margin-top: 2rem; border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
+  .formula-box { background: #f1f5f9; padding: 14px 18px; border-radius: 6px; font-family: monospace; font-size: 1rem; margin: 10px 0; border-left: 4px solid var(--primary); }
+  ul { padding-left: 20px; color: var(--text-light); }
+  li { margin-bottom: 0.5rem; }
+</style>
+</head>
+<body>
+<div class="container">
+  <a href="index.html" class="nav-link">&larr; Back to Calculator Simulator</a>
+  
+  <div class="card" style="margin-top: 1rem;">
+    <h1>Mathematical Methodology</h1>
+    <p style="color: var(--text-light);">Detailed quantitative documentation outlining the core financial algorithms utilized within the simulator engine.</p>
+    
+    <h3>1. Compound Interest & Asset Growth Mechanics</h3>
+    <p>To calculate terminal wealth under discrete compounding periods, the simulator uses the compound interest formulation:</p>
+    <div class="formula-box">A = P (1 + r / n)^{nt}</div>
+    <p>Where:</p>
+    <ul>
+      <li><strong>A</strong> = Final accumulated value of the investment/loan</li>
+      <li><strong>P</strong> = Initial principal balance</li>
+      <li><strong>r</strong> = Annual nominal interest rate (decimal)</li>
+      <li><strong>n</strong> = Number of compounding periods per year (e.g., 12 for monthly)</li>
+      <li><strong>t</strong> = Time horizon in years</li>
+    </ul>
+
+    <h3>2. Fixed-Rate Loan Amortization</h3>
+    <p>To determine the fixed periodic payment required to amortize a loan over a set term, the simulator applies the standard annuity formula:</p>
+    <div class="formula-box">PMT = P &times; [ r(1 + r)^n ] / [ (1 + r)^n - 1 ]</div>
+    <p>Where:</p>
+    <ul>
+      <li><strong>PMT</strong> = Fixed periodic payment amount</li>
+      <li><strong>P</strong> = Principal loan balance</li>
+      <li><strong>r</strong> = Periodic interest rate (Annual rate divided by payment frequency, e.g., 12)</li>
+      <li><strong>n</strong> = Total number of scheduled payments over the loan lifecycle</li>
+    </ul>
+  </div>
+</div>
+</body>
+</html>
